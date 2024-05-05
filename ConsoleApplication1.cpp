@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <fstream>
 #include <locale.h>
 #include <windows.h>
@@ -36,19 +36,27 @@ void Add_tree(Tree** root, Section sect) {
 		}
 	}
 }
+Tree* SearchTree(Tree* root, char* searchOwner) {
+	if (root == NULL)
+		return NULL;
+	int cmp = strcmp(searchOwner, root->data.owner);
+	if (cmp == 0)
+		return root;
+	else if (cmp < 0)
+		return SearchTree(root->left, searchOwner);
+	else
+		return SearchTree(root->right, searchOwner);
+}
 void ViewTree(Tree* root) {
 	if (root == NULL) {
-		//printf("Ошибка! Не удалось найти корень березы!!!!!!!!!...\n");
 		return;
 	}
 	printf("Владелец: %s\n Адрес: %s\n Номер: %d\n Зона: %d\n Площадь: %d\n\n",
 		root->data.owner, root->data.adress, root->data.nomer, root->data.zone, root->data.ploshad);
-
-	ViewTree(root->left);
 	ViewTree(root->right);
+	ViewTree(root->left);
 }
 void CreateTree(Tree** root) {
-	FILE* nalogi;
 	fopen_s(&nalogi, "nalogi.dat", "rb");
 	while (fread(&sect, sizeof(Section), 1, nalogi)) {
 		Add_tree(root, sect);
@@ -58,39 +66,46 @@ void CreateTree(Tree** root) {
 void SearchAndViewTree() {
 	Tree* root = NULL;
 	CreateTree(&root);
-	printf("Сосна смотреть онлайн: \n");
 	ViewTree(root);
 	printf("Найти определенного владельца? (Д/Н):");
 	rewind(stdin);
 	char option = getchar();
-	//scanf_s("%s", &option, sizeof(option));
 	rewind(stdin);
 	if (option == 'д' || option == 'Д') {
 		do {
 			printf("Введите фамилию владельца: ");
 			char searchfam[255];
+			rewind(stdin);
 			scanf_s("%s", searchfam, sizeof(searchfam));
-			printf("Осуществляем поиск...\n");
-			printf("Да нихуя я не ищу, я еще 9 тему не сделал какой поиск дембил\n");
-			printf("Да ебись ты в рот\nПойти нахуй? (Д/Н)");
+			rewind(stdin);
+			printf("Осуществляем поиск...\n----------------\n");
+			Sleep(150);
+			Tree* foundroot = SearchTree(root, searchfam);
+			if (foundroot == NULL) {
+				printf("Такой владелец не найден!\n");
+			}
+			else {
+				printf("Владелец: %s\n Адрес: %s\n Номер: %d\n Зона: %d\n Площадь: %d\n\n",
+					foundroot->data.owner, foundroot->data.adress, foundroot->data.nomer, foundroot->data.zone, foundroot->data.ploshad);
+			}
+			printf("\nПродолжить поиск? (Д/Н): ");
 			rewind(stdin);
 			option = getchar();
 		} while ((option == 'д' || option == 'Д'));
 	}
+	system("cls");
 }
-//создание сосен и берез окончено
 void ShellSort(Section* arr, int n) {
-	int d = n / 2;
-	while (d >= 1) {
+	for (int d = n / 2; d >= 1; d /= 2) {
 		for (int i = d; i < n; i++) {
-			while ((i >= d) && (arr[i - d].zone > arr[i].zone || (arr[i - d].zone == arr[i].zone && strcmp(arr[i - d].owner, arr[i].owner) > 0))) {
-				Section temp = arr[i];
-				arr[i] = arr[i - d];
-				arr[i - d] = temp;
-				i = i - d;
+			for (int j = i - d; j >= 0; j = j - d) {
+				if ((arr[j].zone > arr[j + d].zone) || (arr[j].zone == arr[j+d].zone && strcmp(arr[j].owner,arr[j+d].owner) > 0)) {
+					Section temp = arr[j];
+					arr[j] = arr[j + d];
+					arr[j + d] = temp;
+				}
 			}
 		}
-		d = d / 2;
 	}
 }
 void selectionSort(Section* sectArr, float* tax_arr, int* index_arr, int n) {
@@ -188,17 +203,31 @@ void CountingNalogi() {
 		}
 		printf("\n\n");
 		printf("Количество участков в каждой зоне:\n");
-		for (int i = 0; i < 5; i++) {
+		printf("1 зона   2 зона   3 зона   4 зона   5 зона\n");
+		printf("------------------------------------------\n");
+		/*for (int i = 0; i < 5; i++) {
 			printf("%d) %d\n", i + 1, zonecount[i]);
-		}
+		}*/
+		printf("%4d%9d%9d%9d%9d", zonecount[0], zonecount[1], zonecount[2], zonecount[3], zonecount[4]);
+		printf("\n\n");
 		printf("Общая площадь в каждой зоне:\n");
-		for (int i = 0; i < 5; i++) {
+		printf("1 зона   2 зона   3 зона   4 зона   5 зона\n");
+		printf("------------------------------------------\n");
+		/*for (int i = 0; i < 5; i++) {
 			printf("%d) %d\n", i + 1, zoneArea[i]);
 		}
+		*/
+		printf("%4d%9d%9d%9d%9d", zoneArea[0], zoneArea[1], zoneArea[2], zoneArea[3], zoneArea[4]);
+		printf("\n\n");
 		printf("Общий налог на каждую зону:\n");
-		for (int i = 0; i < 5; i++) {
+		printf("  1 зона     2 зона     3 зона      4 зона     5 зона\n");
+		printf("-----------------------------------------------------\n");
+		/*for (int i = 0; i < 5; i++) {
 			printf("%d) %.2f\n", i + 1, zonetax[i]);
 		}
+		*/
+		printf("%10.2f%11.2f%11.2f%11.2f%11.2f\n\n", zonetax[0], zonetax[1], zonetax[2], zonetax[3], zonetax[4]);
+
 		printf("Общая сумма налога: %f\n", totaltax);
 		printf("Общая площадь всех участков: %d\n", ploshad_sum);
 		printf("Общее количество участков: %d\n", count);
