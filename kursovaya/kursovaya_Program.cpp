@@ -6,12 +6,18 @@
 const int IDC_BTN_INTEGRATE = 1;
 const int IDC_BTN_APPROXIMATE = 2;
 const int IDC_BTN_EXIT = 3;
-
+const int nmax = 3;
+typedef double arrtype[nmax];
+int i, n = 2; /// у нас же пользователь введет только 3 точки да?
+arrtype a, b;
+double* polynom;
+double polynom1[nmax];
 HWND hwndMain; // Главное окно
 HWND hwndIntegral; // Окно для интегрирования
 HWND hwndPolynom; // Окно для полиномиальной кого-то там
 HWND hwndGraphics; // Окно для вывода графика функции
-HWND hwndIntegrateButton, hwndLowerBound, hwndUpperBound, hwndPartitions,hwndFunctionList,hwndMethodList;
+HWND hwndIntegrateButton, hwndLowerBound, hwndUpperBound, hwndPartitions, hwndFunctionList, hwndMethodList;
+HWND hwndPolynomButton,hwndx1, hwndx2, hwndx3, hwndy1, hwndy2, hwndy3;
 LRESULT CALLBACK WndProcMain(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WndProcIntegral(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WndProcPolynom(HWND, UINT, WPARAM, LPARAM);
@@ -26,6 +32,75 @@ double RectInt(double a, double b, int n, int choice_func);
 double TrapInt(double a, double b, int n, int choice_func);
 double SimsonInt(double a, double b, int n, int choice_func);
 double f(double x, int choice_func);
+///ПОЛИНОМИАЛЬНАЯ АППРОКСИМАЦИЯ СДЕЛАНА УРААААААААААААААААААААААААА
+///начинается здесь.
+double* Result(arrtype a, arrtype b, int n);
+double Down(int k, int n, arrtype a);
+double Multi(double p, double s, int k, int n, int jn, int jk);
+void Up(int n, double* a, double y[nmax][nmax]);
+double* Result(arrtype a, arrtype b, int n) {
+    int i, j;
+    double y[nmax][nmax];
+    arrtype z;
+    double Down(int k, int n, arrtype a);
+    double Multi(double p, double s, int k, int n, int jn, int jk);
+    void Up(int n, double* a, double y[nmax][nmax]);
+
+    memset(z, 0, nmax * sizeof(double));
+    Up(n, a, y);
+
+    for (i = 0; i <= n; i++)
+        for (j = 0; j <= n; j++)
+            y[i][j] = y[i][j] * b[i];
+
+    for (j = 0; j <= n; j++)
+        for (i = 0; i <= n; i++)
+            z[j] = z[j] + y[i][j];
+
+    return z;
+}
+double Down(int k, int n, arrtype a) {
+    int i;
+    double q;
+    q = 1;
+    for (i = 0; i <= n; i++) {
+        if (i != k) q = q * (a[k] - a[i]);
+    }
+    return q;
+}
+double Multi(double p, double s, int k, int n, int jn, int jk) {
+    int j;
+    double pr;
+    for (j = jn; j <= jk; j++) {
+        if (j != k)
+            if (jk == (n - 1))
+                s = s + p * a[j];
+            else {
+                pr = p;
+                p = p * a[j];
+                s = Multi(p, s, k, n, j + 1, jk + 1);
+                p = pr;
+            }
+    }
+    return s;
+}
+void Up(int n, double* a, double y[nmax][nmax]) {
+    int i, k;
+    double s, p, z;
+    char mn;
+    for (i = 0; i <= n; i++) {
+        z = Down(i, n, a);
+        mn = -1;
+        for (k = 1; k <= n; k++) {
+            p = 1, s = 0;
+            s = Multi(p, s, i, n + 1, 0, n + 1 - k);
+            y[i][k] = mn * s / z;
+            mn = -1 * mn;
+        }
+        y[i][0] = 1 / z;
+    }
+}
+///и заканчивается здесь.
 double RectInt(double a, double b, int n, int choice_func) {
     double h = (b - a) / n;
     double sum = 0.0;
@@ -82,15 +157,15 @@ double f(double x, int choice_func) { //Подынтегральная функ�
 double FindingIntegral(double a, double b, int n, int choice_func, int choice_method) {
     double sum = 0.0;
     switch (choice_method) {
-        case 1:
-            sum = RectInt(a, b, n, choice_func);
-            break;
-        case 2:
-            sum = TrapInt(a, b, n, choice_func);
-            break;
-        case 3:
-            sum = SimsonInt(a, b, n, choice_func);
-            break;
+    case 1:
+        sum = RectInt(a, b, n, choice_func);
+        break;
+    case 2:
+        sum = TrapInt(a, b, n, choice_func);
+        break;
+    case 3:
+        sum = SimsonInt(a, b, n, choice_func);
+        break;
     }
     return sum;
 }
@@ -325,29 +400,42 @@ void ShowIntegrationWindow(HWND hWndParent) {
         600, 250, 426, 300,
         hWndParent, nullptr, wcIntegral.hInstance, nullptr
     );
+    HWND hwndLabelBound = CreateWindowEx(
+        0, L"STATIC", L"Границы интегрирования", WS_CHILD | WS_VISIBLE,
+        110, 10, 230, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+    );
+    HWND hwndLabelA = CreateWindowEx(
+        0, L"STATIC", L"a = ", WS_CHILD | WS_VISIBLE,
+        60, 40, 20, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+    );
     hwndLowerBound = CreateWindowEx(
         0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        10, 10, 100, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+        90, 40, 100, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
     );
-
+    HWND hwndLabelB = CreateWindowEx(
+        0, L"STATIC", L"b = ", WS_CHILD | WS_VISIBLE,
+        210, 40, 20, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+    );
     hwndUpperBound = CreateWindowEx(
         0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        120, 10, 100, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+        240, 40, 100, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
     );
-
+    HWND hwndCountN = CreateWindowEx(
+        0, L"STATIC", L"Число отрезков", WS_CHILD | WS_VISIBLE,
+        30, 70, 130, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+    );
     hwndPartitions = CreateWindowEx(
         0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        230, 10, 100, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+        30, 100, 100, 20, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
     );
-
     // Создание списка функций
     hwndFunctionList = CreateWindowEx(
         0, L"COMBOBOX", nullptr, WS_CHILD | WS_VISIBLE | CBS_DROPDOWN,
-        10, 40, 200, 200, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+        30, 140, 200, 200, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
     );
     hwndMethodList = CreateWindowEx(
         0, L"COMBOBOX", nullptr, WS_CHILD | WS_VISIBLE | CBS_DROPDOWN,
-        10, 80, 200, 200, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+        30, 180, 200, 200, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
     );
     ///функции
     SendMessage(hwndFunctionList, CB_ADDSTRING, 0, (LPARAM)L"sin(x)");
@@ -364,7 +452,7 @@ void ShowIntegrationWindow(HWND hWndParent) {
     SendMessage(hwndMethodList, CB_SETCURSEL, 0, 0);
     hwndIntegrateButton = CreateWindowEx(
         0, L"BUTTON", L"Интегрировать", WS_CHILD | WS_VISIBLE,
-        10, 130, 150, 30, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
+        140, 220, 150, 30, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
     );
 }
 void ShowPolynomialWindow(HWND hWndParent) {
@@ -375,7 +463,7 @@ void ShowPolynomialWindow(HWND hWndParent) {
     WNDCLASSEX wcPolynom{};
     wcPolynom.cbSize = sizeof(WNDCLASSEX);
     wcPolynom.style = CS_HREDRAW | CS_VREDRAW;
-    wcPolynom.lpfnWndProc = WndProcIntegral;
+    wcPolynom.lpfnWndProc = WndProcPolynom;
     wcPolynom.cbClsExtra = 0;
     wcPolynom.cbWndExtra = 0;
     wcPolynom.hInstance = GetModuleHandle(nullptr);
@@ -391,65 +479,161 @@ void ShowPolynomialWindow(HWND hWndParent) {
         wcPolynom.lpszClassName,
         L"Аппроксимация",
         WS_CAPTION | WS_SYSMENU | WS_VISIBLE,
-        600,250,515,535,
-        hWndParent,nullptr,wcPolynom.hInstance,nullptr
+        600, 250, 400, 250,
+        hWndParent, nullptr, wcPolynom.hInstance, nullptr
     );
-    HWND hwndx1 = CreateWindowEx(
+    hwndx1 = CreateWindowEx(
         0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        10, 10, 100, 20, hwndIntegral, nullptr, wcPolynom.hInstance, nullptr
-    );
-
-    HWND hwndy1 = CreateWindowEx(
-        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        120, 10, 100, 20, hwndIntegral, nullptr, wcPolynom.hInstance, nullptr
+        10, 30, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
     );
 
-    HWND hwndx2 = CreateWindowEx(
+    hwndx2 = CreateWindowEx(
         0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        230, 10, 100, 20, hwndIntegral, nullptr, wcPolynom.hInstance, nullptr
+        120, 30, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    hwndx3 = CreateWindowEx(
+        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
+        230, 30, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    hwndy1 = CreateWindowEx(
+        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
+        10, 80, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    hwndy2 = CreateWindowEx(
+        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
+        120, 80, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    hwndy3 = CreateWindowEx(
+        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
+        230, 80, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+    // Создание меток для полей ввода x1, x2, x3
+    HWND hwndLabelX1 = CreateWindowEx(
+        0, L"STATIC", L"x1", WS_CHILD | WS_VISIBLE,
+        50, 10, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    HWND hwndLabelX2 = CreateWindowEx(
+        0, L"STATIC", L"x2", WS_CHILD | WS_VISIBLE,
+        160, 10, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    HWND hwndLabelX3 = CreateWindowEx(
+        0, L"STATIC", L"x3", WS_CHILD | WS_VISIBLE,
+        270, 10, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    // Создание меток для полей ввода y1, y2, y3
+    HWND hwndLabelY1 = CreateWindowEx(
+        0, L"STATIC", L"y1", WS_CHILD | WS_VISIBLE,
+        50, 60, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    HWND hwndLabelY2 = CreateWindowEx(
+        0, L"STATIC", L"y2", WS_CHILD | WS_VISIBLE,
+        160, 60, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+
+    HWND hwndLabelY3 = CreateWindowEx(
+        0, L"STATIC", L"y3", WS_CHILD | WS_VISIBLE,
+        270, 60, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    );
+    hwndPolynomButton = CreateWindowEx(
+        0, L"BUTTON", L"Аппроксимизировать по трем точкам", WS_CHILD | WS_VISIBLE,
+        30, 130, 300, 30, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
     );
 }
 LRESULT CALLBACK WndProcIntegral(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
-        case WM_DESTROY:
-            DestroyWindow(hWnd);
-            hwndIntegral = nullptr;
-            UnregisterClass(L"IntegralWindowClass", GetModuleHandle(nullptr));
-            ///PostQuitMessage(0);
-            break;
-        case WM_COMMAND: {
-            if (LOWORD(wParam) == BN_CLICKED && HWND(lParam) == hwndIntegrateButton) {
-                wchar_t lowerBoundstr[255];
-                wchar_t upperBoundstr[255];
-                wchar_t nStr[255];
-                GetWindowText(hwndLowerBound, lowerBoundstr, sizeof(lowerBoundstr) / sizeof(wchar_t));
-                GetWindowText(hwndUpperBound, upperBoundstr, sizeof(upperBoundstr) / sizeof(wchar_t));
-                GetWindowText(hwndPartitions, nStr, sizeof(nStr) / sizeof(wchar_t));
-                int choice_func = (int)SendMessage(hwndFunctionList, CB_GETCURSEL, 0, 0)+1;
-                int methodChoice = (int)SendMessage(hwndMethodList, CB_GETCURSEL, 0, 0) + 1;
-                ///MessageBoxA(hWnd, "NEGRETOS ONLINE!!!!!!!!!!!", "Результат интегрирования", MB_OK);
-                double a = _wtof(lowerBoundstr);
-                double b = _wtof(upperBoundstr);
-                int n = _wtoi(nStr);
-                if (a == 0 || b == 0 || n == 0)
-                    MessageBoxA(hwndIntegral, "Одно из полей не введено!", "Ошибка!", MB_OK);
-                else {
-                    double sum = FindingIntegral(a, b, n, choice_func, methodChoice);
-                    char buffer[255];
-                    sprintf_s(buffer, "Значение определенного интеграла: %.6f", sum);
-                    MessageBoxA(hWnd, buffer, "Результат интегрирования", MB_OK);
-                    int question = MessageBoxA(NULL, "Нужно ли вывести график?", "визуализация", MB_YESNO | MB_ICONQUESTION);
-                    if (question == IDYES)
-                        CreatingGraphics(a, b, choice_func, methodChoice, n);
-                }
+    case WM_DESTROY:
+        DestroyWindow(hWnd);
+        hwndIntegral = nullptr;
+        UnregisterClass(L"IntegralWindowClass", GetModuleHandle(nullptr));
+        ///PostQuitMessage(0);
+        break;
+    case WM_COMMAND: {
+        if (LOWORD(wParam) == BN_CLICKED && HWND(lParam) == hwndIntegrateButton) {
+            wchar_t lowerBoundstr[255];
+            wchar_t upperBoundstr[255];
+            wchar_t nStr[255];
+            GetWindowText(hwndLowerBound, lowerBoundstr, sizeof(lowerBoundstr) / sizeof(wchar_t));
+            GetWindowText(hwndUpperBound, upperBoundstr, sizeof(upperBoundstr) / sizeof(wchar_t));
+            GetWindowText(hwndPartitions, nStr, sizeof(nStr) / sizeof(wchar_t));
+            int choice_func = (int)SendMessage(hwndFunctionList, CB_GETCURSEL, 0, 0) + 1;
+            int methodChoice = (int)SendMessage(hwndMethodList, CB_GETCURSEL, 0, 0) + 1;
+            ///MessageBoxA(hWnd, "NEGRETOS ONLINE!!!!!!!!!!!", "Результат интегрирования", MB_OK);
+            double a = _wtof(lowerBoundstr);
+            double b = _wtof(upperBoundstr);
+            int n = _wtoi(nStr);
+            if (a == 0 || b == 0 || n == 0)
+                MessageBoxA(hwndIntegral, "Одно из полей не введено!", "Ошибка!", MB_OK);
+            else {
+                double sum = FindingIntegral(a, b, n, choice_func, methodChoice);
+                char buffer[255];
+                sprintf_s(buffer, "Значение определенного интеграла: %.6f", sum);
+                MessageBoxA(hWnd, buffer, "Результат интегрирования", MB_OK);
+                int question = MessageBoxA(NULL, "Нужно ли вывести график?", "визуализация", MB_YESNO | MB_ICONQUESTION);
+                if (question == IDYES)
+                    CreatingGraphics(a, b, choice_func, methodChoice, n);
+            }
 
+        }
+        break;
+    }
+    default:
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    }
+    return 0;
+}
+LRESULT CALLBACK WndProcPolynom(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+        case WM_DESTROY: {
+            DestroyWindow(hwnd);
+            hwndPolynom = nullptr;
+            UnregisterClass(L"PolynomWindowClass", GetModuleHandle(nullptr));
+            break;
+        }
+        case WM_COMMAND: {
+            if (LOWORD(wParam) == BN_CLICKED && HWND(lParam) == hwndPolynomButton) {
+                wchar_t strx1[10], strx2[10], strx3[10], stry1[10], stry2[10], stry3[10];
+                GetWindowText(hwndx1, strx1, sizeof(strx1) / sizeof(wchar_t));
+                GetWindowText(hwndx2, strx2, sizeof(strx2) / sizeof(wchar_t));
+                GetWindowText(hwndx3, strx3, sizeof(strx3) / sizeof(wchar_t));
+                GetWindowText(hwndy1, stry1, sizeof(stry1) / sizeof(wchar_t));
+                GetWindowText(hwndy2,stry2, sizeof(stry2) / sizeof(wchar_t));
+                GetWindowText(hwndy3, stry3, sizeof(stry3) / sizeof(wchar_t));
+                double x1, x2, x3, y1, y2, y3;
+                x1 = _wtof(strx1);
+                x2 = _wtof(strx2);
+                x3 = _wtof(strx3);
+                y1 = _wtof(stry1);
+                y2 = _wtof(stry2);
+                y3 = _wtof(stry3);
+                if (wcslen(strx1) == 0 || wcslen(strx2) == 0 || wcslen(strx3) == 0 ||
+                    wcslen(stry1) == 0 || wcslen(stry2) == 0 || wcslen(stry3) == 0) 
+                    MessageBoxA(hwndPolynom, "Одно из полей не заполнено!", "Ошибка!", MB_OK);
+                else {
+                    a[0] = x1;
+                    a[1] = x2;
+                    a[2] = x3;
+                    b[0] = y1;
+                    b[1] = y2;
+                    b[2] = y3;
+                    polynom = Result(a, b, n);
+                    char foundedPolynom[255];
+                    sprintf_s(foundedPolynom, "%f*x^2 + (%f)*x + (%f)", polynom[0], polynom[1], polynom[2]);
+                    MessageBoxA(hwndPolynom, foundedPolynom, "Полиномиальная аппроксимация", MB_OK);
+                }
             }
             break;
         }
         default:
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+            return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
-    return 0;
 }
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
