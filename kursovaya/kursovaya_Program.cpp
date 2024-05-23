@@ -1,14 +1,17 @@
+#define _CRT_NON_CONFORMING_SWPRINTFS
 #define _USE_MATH_DEFINES
 #include <windows.h>
 #include <string.h>
 #include <stdio.h>
+#include <iostream>
 #include <math.h>
 const int IDC_BTN_INTEGRATE = 1;
 const int IDC_BTN_APPROXIMATE = 2;
 const int IDC_BTN_EXIT = 3;
-const int nmax = 3;
+const int nmax = 20;
+int numPoints = 0;
 typedef double arrtype[nmax];
-int i, n = 2; /// у нас же пользователь введет только 3 точки да?
+int i, n; /// у нас же пользователь введет только 3 точки да?
 arrtype a, b;
 double* polynom;
 double polynom1[nmax];
@@ -17,7 +20,7 @@ HWND hwndIntegral; // Окно для интегрирования
 HWND hwndPolynom; // Окно для полиномиальной кого-то там
 HWND hwndGraphics; // Окно для вывода графика функции
 HWND hwndIntegrateButton, hwndLowerBound, hwndUpperBound, hwndPartitions, hwndFunctionList, hwndMethodList;
-HWND hwndPolynomButton,hwndx1, hwndx2, hwndx3, hwndy1, hwndy2, hwndy3;
+HWND hwndPolynomButton, hwndx1, hwndx2, hwndx3, hwndy1, hwndy2, hwndy3,hwndAddPoint;
 LRESULT CALLBACK WndProcMain(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WndProcIntegral(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK WndProcPolynom(HWND, UINT, WPARAM, LPARAM);
@@ -169,89 +172,153 @@ double FindingIntegral(double a, double b, int n, int choice_func, int choice_me
     }
     return sum;
 }
+double maxValue(double a, double b, int choice_func) {
+    double maxVal = f(a, choice_func);
+    for (double x = a + 0.1; x <= b; x += 0.1) {
+        double val = f(x, choice_func);
+        if (val > maxVal) {
+            maxVal = val;
+        }
+    }
+    return maxVal;
+}
+
+double minValue(double a, double b, int choice_func) {
+    double minVal = f(a, choice_func);
+    for (double x = a + 0.1; x <= b; x += 0.1) {
+        double val = f(x, choice_func);
+        if (val < minVal) {
+            minVal = val;
+        }
+    }
+    return minVal;
+}
 void DrawFunctionGraph(HWND hwnd, double a, double b, int choice_func) {
     HDC hdc = GetDC(hwnd);
-    HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+    HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0)); // Черный цвет для осей
     HGDIOBJ oldPen = SelectObject(hdc, pen);
-    MoveToEx(hdc, 0, 540, NULL);
-    LineTo(hdc, 1920, 540);
-    MoveToEx(hdc, 960, 0, NULL);
-    LineTo(hdc, 960, 1080);
-    TextOut(hdc, 10, 530, L"X", 1);
-    TextOut(hdc, 970, 10, L"Y", 1);
+
+    // Определяем размеры окна
+    int windowWidth = 1920;
+    int windowHeight = 1080;
+
+    // Вычисляем минимальное и максимальное значения функции на заданном интервале
+    double minVal = minValue(a, b, choice_func);
+    double maxVal = maxValue(a, b, choice_func);
+
+    MoveToEx(hdc, windowWidth / 2, 0, NULL);
+    LineTo(hdc, windowWidth / 2, windowHeight);
+    MoveToEx(hdc, 0, windowHeight / 2, NULL);
+    LineTo(hdc, windowWidth, windowHeight / 2);
 
 
-    for (int x = 0; x < 1920; x++) {
-        double xVal = (x - 960) / 100.0;
-        int y = 540 - (int)(f(xVal, choice_func) * 100.0);
-        SetPixel(hdc, x, y, RGB(0, 0, 250));
+    // Рисуем подписи для осей
+    TextOut(hdc, windowWidth - 100, windowHeight / 2 - 20, L"X", 1);
+    TextOut(hdc, windowWidth / 2 - 20, 50, L"Y", 1);
+
+    // Рисуем график функции
+    double xScale = (double)(windowWidth * 0.3) / (b - a);
+    double yScale = (double)(windowHeight * 0.3) / (maxVal - minVal);
+
+    MoveToEx(hdc, (int)(windowWidth / 2), (int)(windowHeight / 2), NULL);
+    for (double x = a; x <= b; x += 0.01) {
+        double funcVal = f(x, choice_func);
+        int xPos = (int)(windowWidth / 2 + x * xScale);
+        int yPos = (int)(windowHeight / 2 - funcVal * yScale);
+        SetPixel(hdc, xPos, yPos, RGB(0, 0, 255)); // Рисуем синие пиксели
     }
+
     SelectObject(hdc, oldPen);
-    DeleteObject(pen);
     ReleaseDC(hwnd, hdc);
 }
+
+
 void VisualizeIntegration(HWND hwnd, double a, double b, int n, int choice_func, int choice_method) {
     HDC hdc = GetDC(hwnd);
-    HPEN pen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
+    HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0)); // Черный цвет для осей
     HGDIOBJ oldPen = SelectObject(hdc, pen);
 
-    double scale = 100.0;
-    int centerX = 1920 / 2;
-    int centerY = 1080 / 2;
+    // Определяем размеры окна
+    int windowWidth = 1920;
+    int windowHeight = 1080;
+
+    // Вычисляем минимальное и максимальное значения функции на заданном интервале
+    double minVal = minValue(a, b, choice_func);
+    double maxVal = maxValue(a, b, choice_func);
+
+    // Рисуем подписи для осей
+    TextOut(hdc, windowWidth - 100, windowHeight / 2 - 20, L"X", 1);
+    TextOut(hdc, windowWidth / 2 - 20, 50, L"Y", 1);
+
     double h = (b - a) / n;
     double x = a;
+    double xScale = (double)(windowWidth * 0.3) / (b - a);
+    double yScale = (double)(windowHeight * 0.3) / (maxVal - minVal);
 
     switch (choice_method) {
     case 1: // Метод прямоугольников
+        pen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0)); // Красный цвет для прямоугольников
+        SelectObject(hdc, pen);
         for (int i = 0; i < n; i++) {
-            int xStart = centerX + (int)(x * scale);
-            int xEnd = centerX + (int)((x + h) * scale);
-            int y = centerY - (int)(f(x, choice_func) * scale);
+            int xStart = (int)(windowWidth / 2 + x * xScale);
+            int xEnd = (int)(windowWidth / 2 + (x + h) * xScale);
+            int y = (int)(windowHeight / 2 - f(x, choice_func) * yScale);
+            int rectHeight = (int)(f(x, choice_func) * yScale);
             MoveToEx(hdc, xStart, y, NULL);
+            LineTo(hdc, xStart, y + rectHeight);
+            LineTo(hdc, xEnd, y + rectHeight);
             LineTo(hdc, xEnd, y);
-            LineTo(hdc, xEnd, centerY);
-            LineTo(hdc, xStart, centerY);
             LineTo(hdc, xStart, y);
             x += h;
         }
+        DeleteObject(pen);
         break;
     case 2: // Метод трапеций
+        pen = CreatePen(PS_SOLID, 2, RGB(0, 255, 0)); // Зеленый цвет для трапеций
+        SelectObject(hdc, pen);
         for (int i = 0; i < n; i++) {
-            int xStart = centerX + (int)(x * scale);
-            int xEnd = centerX + (int)((x + h) * scale);
-            int y1 = centerY - (int)(f(x, choice_func) * scale);
-            int y2 = centerY - (int)(f(x + h, choice_func) * scale);
+            int xStart = (int)(windowWidth / 2 + x * xScale);
+            int xEnd = (int)(windowWidth / 2 + (x + h) * xScale);
+            int y1 = (int)(windowHeight / 2 - f(x, choice_func) * yScale);
+            int y2 = (int)(windowHeight / 2 - f(x + h, choice_func) * yScale);
             MoveToEx(hdc, xStart, y1, NULL);
             LineTo(hdc, xEnd, y2);
-            LineTo(hdc, xEnd, centerY);
-            LineTo(hdc, xStart, centerY);
+            LineTo(hdc, xEnd, (int)windowHeight / 2);
+            LineTo(hdc, xStart, (int)windowHeight / 2);
             LineTo(hdc, xStart, y1);
             x += h;
         }
+        DeleteObject(pen);
         break;
     case 3: // Метод парабол
+        pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 255)); // Синий цвет для парабол
+        SelectObject(hdc, pen);
         for (int i = 0; i < n; i += 2) {
-            int xStart = centerX + (int)(x * scale);
-            int xMid = centerX + (int)((x + h) * scale);
-            int xEnd = centerX + (int)((x + 2 * h) * scale);
-            int y1 = centerY - (int)(f(x, choice_func) * scale);
-            int y2 = centerY - (int)(f(x + h, choice_func) * scale);
-            int y3 = centerY - (int)(f(x + 2 * h, choice_func) * scale);
+            int xStart = (int)(windowWidth / 2 + x * xScale);
+            int xMid = (int)(windowWidth / 2 + (x + h) * xScale);
+            int xEnd = (int)(windowWidth / 2 + (x + 2 * h) * xScale);
+
+            int y1 = (int)(windowHeight / 2 - f(x, choice_func) * yScale);
+            int y2 = (int)(windowHeight / 2 - f(x + h, choice_func) * yScale);
+            int y3 = (int)(windowHeight / 2 - f(x + 2 * h, choice_func) * yScale);
             MoveToEx(hdc, xStart, y1, NULL);
             LineTo(hdc, xMid, y2);
             LineTo(hdc, xEnd, y3);
-            LineTo(hdc, xEnd, centerY);
-            LineTo(hdc, xStart, centerY);
+            LineTo(hdc, xEnd, (int)windowHeight / 2);
+            LineTo(hdc, xStart, (int)windowHeight / 2);
             LineTo(hdc, xStart, y1);
             x += 2 * h;
         }
+        DeleteObject(pen);
         break;
     }
 
     SelectObject(hdc, oldPen);
-    DeleteObject(pen);
     ReleaseDC(hwnd, hdc);
 }
+
+
+
 void CreatingGraphics(double a, double b, int choice_func, int choice_method, int n) {
     WNDCLASSA wcl;
     memset(&wcl, 0, sizeof(WNDCLASSA));
@@ -484,66 +551,28 @@ void ShowPolynomialWindow(HWND hWndParent) {
     );
     hwndx1 = CreateWindowEx(
         0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        10, 30, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+        40, 30, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
     );
-
-    hwndx2 = CreateWindowEx(
-        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        120, 30, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
-    );
-
-    hwndx3 = CreateWindowEx(
-        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        230, 30, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
-    );
-
     hwndy1 = CreateWindowEx(
         0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        10, 80, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+        200, 30, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
     );
-
-    hwndy2 = CreateWindowEx(
-        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        120, 80, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
-    );
-
-    hwndy3 = CreateWindowEx(
-        0, L"EDIT", nullptr, WS_CHILD | WS_VISIBLE | WS_BORDER,
-        230, 80, 100, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
-    );
-    // Создание меток для полей ввода x1, x2, x3
     HWND hwndLabelX1 = CreateWindowEx(
-        0, L"STATIC", L"x1", WS_CHILD | WS_VISIBLE,
-        50, 10, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
-    );
-
-    HWND hwndLabelX2 = CreateWindowEx(
-        0, L"STATIC", L"x2", WS_CHILD | WS_VISIBLE,
-        160, 10, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
-    );
-
-    HWND hwndLabelX3 = CreateWindowEx(
-        0, L"STATIC", L"x3", WS_CHILD | WS_VISIBLE,
-        270, 10, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+        0, L"STATIC", L"x", WS_CHILD | WS_VISIBLE,
+        80, 10, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
     );
 
     // Создание меток для полей ввода y1, y2, y3
     HWND hwndLabelY1 = CreateWindowEx(
-        0, L"STATIC", L"y1", WS_CHILD | WS_VISIBLE,
-        50, 60, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+        0, L"STATIC", L"y", WS_CHILD | WS_VISIBLE,
+        240, 10, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
     );
-
-    HWND hwndLabelY2 = CreateWindowEx(
-        0, L"STATIC", L"y2", WS_CHILD | WS_VISIBLE,
-        160, 60, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
-    );
-
-    HWND hwndLabelY3 = CreateWindowEx(
-        0, L"STATIC", L"y3", WS_CHILD | WS_VISIBLE,
-        270, 60, 20, 20, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
+    hwndAddPoint = CreateWindowEx(
+        0, L"BUTTON", L"Добавить точку", WS_CHILD | WS_VISIBLE,
+        30, 100, 300, 30, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
     );
     hwndPolynomButton = CreateWindowEx(
-        0, L"BUTTON", L"Аппроксимизировать по трем точкам", WS_CHILD | WS_VISIBLE,
+        0, L"BUTTON", L"Аппроксимизировать", WS_CHILD | WS_VISIBLE,
         30, 130, 300, 30, hwndPolynom, nullptr, wcPolynom.hInstance, nullptr
     );
 }
@@ -569,7 +598,7 @@ LRESULT CALLBACK WndProcIntegral(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
             double a = _wtof(lowerBoundstr);
             double b = _wtof(upperBoundstr);
             int n = _wtoi(nStr);
-            if (a == 0 || b == 0 || n == 0)
+            if (wcslen(lowerBoundstr) == 0 || wcslen(upperBoundstr) == 0 || wcslen(nStr) == 0)
                 MessageBoxA(hwndIntegral, "Одно из полей не введено!", "Ошибка!", MB_OK);
             else {
                 double sum = FindingIntegral(a, b, n, choice_func, methodChoice);
@@ -591,48 +620,42 @@ LRESULT CALLBACK WndProcIntegral(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 }
 LRESULT CALLBACK WndProcPolynom(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
-        case WM_DESTROY: {
-            DestroyWindow(hwnd);
-            hwndPolynom = nullptr;
-            UnregisterClass(L"PolynomWindowClass", GetModuleHandle(nullptr));
-            break;
+    case WM_DESTROY: {
+        DestroyWindow(hwnd);
+        hwndPolynom = nullptr;
+        UnregisterClass(L"PolynomWindowClass", GetModuleHandle(nullptr));
+        break;
+    }
+    case WM_COMMAND: {
+        if (lParam == (LPARAM)hwndAddPoint && HIWORD(wParam) == BN_CLICKED) {
+            // Получаем значения x и y из полей ввода
+            wchar_t bufferX[100], bufferY[100];
+            GetWindowText(hwndx1, bufferX, 100);
+            GetWindowText(hwndy1, bufferY, 100);
+            double x = _wtof(bufferX);
+            double y = _wtof(bufferY);
+            a[numPoints] = x;
+            b[numPoints] = y;
+            numPoints++;
+            MessageBoxA(hwndPolynom, "Точка добавлена!", "Аппроксимация", MB_OK);
+            SetWindowText(hwndx1, L"");
+            SetWindowText(hwndy1, L"");
         }
-        case WM_COMMAND: {
-            if (LOWORD(wParam) == BN_CLICKED && HWND(lParam) == hwndPolynomButton) {
-                wchar_t strx1[10], strx2[10], strx3[10], stry1[10], stry2[10], stry3[10];
-                GetWindowText(hwndx1, strx1, sizeof(strx1) / sizeof(wchar_t));
-                GetWindowText(hwndx2, strx2, sizeof(strx2) / sizeof(wchar_t));
-                GetWindowText(hwndx3, strx3, sizeof(strx3) / sizeof(wchar_t));
-                GetWindowText(hwndy1, stry1, sizeof(stry1) / sizeof(wchar_t));
-                GetWindowText(hwndy2,stry2, sizeof(stry2) / sizeof(wchar_t));
-                GetWindowText(hwndy3, stry3, sizeof(stry3) / sizeof(wchar_t));
-                double x1, x2, x3, y1, y2, y3;
-                x1 = _wtof(strx1);
-                x2 = _wtof(strx2);
-                x3 = _wtof(strx3);
-                y1 = _wtof(stry1);
-                y2 = _wtof(stry2);
-                y3 = _wtof(stry3);
-                if (wcslen(strx1) == 0 || wcslen(strx2) == 0 || wcslen(strx3) == 0 ||
-                    wcslen(stry1) == 0 || wcslen(stry2) == 0 || wcslen(stry3) == 0) 
-                    MessageBoxA(hwndPolynom, "Одно из полей не заполнено!", "Ошибка!", MB_OK);
-                else {
-                    a[0] = x1;
-                    a[1] = x2;
-                    a[2] = x3;
-                    b[0] = y1;
-                    b[1] = y2;
-                    b[2] = y3;
-                    polynom = Result(a, b, n);
-                    char foundedPolynom[255];
-                    sprintf_s(foundedPolynom, "%f*x^2 + (%f)*x + (%f)", polynom[0], polynom[1], polynom[2]);
-                    MessageBoxA(hwndPolynom, foundedPolynom, "Полиномиальная аппроксимация", MB_OK);
-                }
-            }
-            break;
+        // Обработчик события для кнопки "Аппроксимизировать"
+        if (lParam == (LPARAM)hwndPolynomButton && HIWORD(wParam) == BN_CLICKED) {
+            // Вызываем функцию Result для вычисления полинома
+            polynom = Result(a, b, numPoints);
+
+            // Выводим результат в MessageBox
+            wchar_t buffer[1000];
+            swprintf_s(buffer, L"Коэффициенты полинома (по убыванию от старшей степени): %lf %lf %lf ...", polynom[0], polynom[1], polynom[2]);
+            MessageBox(hwndPolynom, buffer, L"Результат", MB_OK);
+            numPoints = 0;
         }
-        default:
-            return DefWindowProc(hwnd, uMsg, wParam, lParam);
+        break;
+    }
+    default:
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
     }
 }
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
