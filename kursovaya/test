@@ -10,24 +10,17 @@ const int IDC_BTN_APPROXIMATE = 2;
 const int IDC_BTN_EXIT = 3;
 const int nmax = 20;
 int numPoints = 0;
-struct PolynomData {
-    double minX;
-    double maxX;
-    double* polynom;
-    int degree;
-};
-PolynomData polynomData;
 int selectedIntegrationMethod = -1;
 typedef double arrtype[nmax];
-int i, n;
+int i, n; 
 arrtype a, b;
 double* polynom;
 double polynom1[nmax];
-HWND hwndMain;
-HWND hwndIntegral;
-HWND hwndPolynom;
-HWND hwndPolynomGraphics, hwndPolynomChoiceWindow, hwndPolynomChoice, hwndIntegrationMethod, hwndPolynomBtn, hwndMethodComboBox;
-HWND hwndGraphics;
+HWND hwndMain; 
+HWND hwndIntegral; 
+HWND hwndPolynom; 
+HWND hwndPolynomGraphics,hwndPolynomChoiceWindow,hwndPolynomChoice,hwndIntegrationMethod,hwndPolynomBtn, hwndMethodComboBox;
+HWND hwndGraphics; 
 HWND hwndIntegrateButton, hwndLowerBound, hwndUpperBound, hwndPartitions, hwndFunctionList, hwndMethodList;
 HWND hwndPolynomButton, hwndx1, hwndx2, hwndx3, hwndy1, hwndy2, hwndy3, hwndAddPoint;
 LRESULT CALLBACK WndProcMain(HWND, UINT, WPARAM, LPARAM);
@@ -37,25 +30,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndProcPolWindow(HWND, UINT, WPARAM, LPARAM);
 void ShowPolynomialWindow(HWND hwnd);
 void ShowIntegrationWindow(HWND hwnd);
-double pol(double x,double*polynom,int degree) { ///пока ограничусь только полиномомом 4 степени, потом доберусь до 10 степени
-    switch (degree) {
-        case 1:
-            return polynom[0] * x + polynom[1];
-            break;
-        case 2:
-            return polynom[0] * (x * x) + polynom[1] * x + polynom[2];
-            break;
-        case 3:
-            return polynom[0] * (x * x*x) + polynom[1] * (x*x) + polynom[2]*x+polynom[3];
-            break;
-        case 4:
-            return polynom[0] * (x * x * x*x) + polynom[1] * (x * x*x) + polynom[2] * (x*x) + polynom[3]*x + polynom[4];
-            break;
-        default:
-            return 0.0;
-            break;
-    }
-}
 double FindingIntegral(double a, double b, int n, int choice_func, int choice_method);
 void VisualizeIntegration(HWND hwnd, double a, double b, int n, int choice_func, int choice_method);
 void CreatingGraphics(double a, double b, int choice_func, int choice_method, int n);
@@ -158,7 +132,7 @@ double SimsonInt(double a, double b, int n, int choice_func) {
     sum *= h / 3;
     return sum;
 }
-double f(double x, int choice_func) {
+double f(double x, int choice_func) { 
     switch (choice_func) {
     case 1:
         return sin(x);
@@ -177,6 +151,25 @@ double f(double x, int choice_func) {
         break;
     case 6:
         return cos(x + 3 * M_PI / 2);
+        break;
+    default:
+        return 0.0;
+        break;
+    }
+}
+double pol(double x, double* polynom, int degree) {
+    switch (degree) {
+    case 1:
+        return polynom[0] * x + polynom[1];
+        break;
+    case 2:
+        return polynom[0] * (x * x) + polynom[1] * x + polynom[2];
+        break;
+    case 3:
+        return polynom[0] * (x * x * x) + polynom[1] * (x * x) + polynom[2] * x + polynom[3];
+        break;
+    case 4:
+        return polynom[0] * (x * x * x * x) + polynom[1] * (x * x * x) + polynom[2] * (x * x) + polynom[3] * x + polynom[4];
         break;
     default:
         return 0.0;
@@ -208,6 +201,7 @@ double maxValue(double a, double b, int choice_func) {
     }
     return maxVal;
 }
+
 double minValue(double a, double b, int choice_func) {
     double minVal = f(a, choice_func);
     for (double x = a + 0.1; x <= b; x += 0.1) {
@@ -220,18 +214,18 @@ double minValue(double a, double b, int choice_func) {
 }
 void DrawFunctionGraph(HWND hwnd, double a, double b, int choice_func) {
     HDC hdc = GetDC(hwnd);
-    HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+    HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0)); 
     HGDIOBJ oldPen = SelectObject(hdc, pen);
 
-
+   
     int windowWidth = 1920;
     int windowHeight = 1080;
     if (a > b) {
-       double temp = a;
+        double temp = a;
         a = b;
         b = temp;
     }
-
+    
     double minVal = minValue(a, b, choice_func);
     double maxVal = maxValue(a, b, choice_func);
 
@@ -241,11 +235,11 @@ void DrawFunctionGraph(HWND hwnd, double a, double b, int choice_func) {
     LineTo(hdc, windowWidth, windowHeight / 2);
 
 
-
+    
     TextOut(hdc, windowWidth - 100, windowHeight / 2 - 20, L"X", 1);
     TextOut(hdc, windowWidth / 2 - 20, 50, L"Y", 1);
 
-
+    
     double xScale = (double)(windowWidth * 0.25) / (b - a);
     double yScale = (double)(windowHeight * 0.25) / (maxVal - minVal);
 
@@ -254,7 +248,7 @@ void DrawFunctionGraph(HWND hwnd, double a, double b, int choice_func) {
         double funcVal = f(x, choice_func);
         int xPos = (int)(windowWidth / 2 + x * xScale);
         int yPos = (int)(windowHeight / 2 - funcVal * yScale);
-        SetPixel(hdc, xPos, yPos, RGB(0, 0, 255));
+        SetPixel(hdc, xPos, yPos, RGB(0, 0, 255)); 
     }
 
     SelectObject(hdc, oldPen);
@@ -262,7 +256,7 @@ void DrawFunctionGraph(HWND hwnd, double a, double b, int choice_func) {
 }
 void VisualizeIntegration(HWND hwnd, double a, double b, int n, int choice_func, int choice_method) {
     HDC hdc = GetDC(hwnd);
-    HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
+    HPEN pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0)); 
     HGDIOBJ oldPen = SelectObject(hdc, pen);
 
     int windowWidth = 1920;
@@ -284,8 +278,8 @@ void VisualizeIntegration(HWND hwnd, double a, double b, int n, int choice_func,
     double yScale = (double)(windowHeight * 0.25) / (maxVal - minVal);
 
     switch (choice_method) {
-    case 1:
-        pen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
+    case 1: 
+        pen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0)); 
         SelectObject(hdc, pen);
         for (int i = 0; i < n; i++) {
             int xStart = (int)(windowWidth / 2 + x * xScale);
@@ -301,8 +295,8 @@ void VisualizeIntegration(HWND hwnd, double a, double b, int n, int choice_func,
         }
         DeleteObject(pen);
         break;
-    case 2:
-        pen = CreatePen(PS_SOLID, 2, RGB(0, 255, 0));
+    case 2: 
+        pen = CreatePen(PS_SOLID, 2, RGB(0, 255, 0)); 
         SelectObject(hdc, pen);
         for (int i = 0; i < n; i++) {
             int xStart = (int)(windowWidth / 2 + x * xScale);
@@ -318,8 +312,8 @@ void VisualizeIntegration(HWND hwnd, double a, double b, int n, int choice_func,
         }
         DeleteObject(pen);
         break;
-    case 3:
-        pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
+    case 3: 
+        pen = CreatePen(PS_SOLID, 2, RGB(0, 0, 255)); 
         SelectObject(hdc, pen);
         for (int i = 0; i < n; i += 2) {
             int xStart = (int)(windowWidth / 2 + x * xScale);
@@ -605,7 +599,7 @@ void ShowPolynomialWindow(HWND hWndParent) {
     SendMessage(hwndMethodComboBox, CB_ADDSTRING, 0, (LPARAM)L"Метод прямоугольников");
     SendMessage(hwndMethodComboBox, CB_ADDSTRING, 0, (LPARAM)L"Метод трапеций");
     SendMessage(hwndMethodComboBox, CB_ADDSTRING, 0, (LPARAM)L"Метод Симпсона");
-    SendMessage(hwndMethodComboBox, CB_SETCURSEL, 0, 0); 
+    SendMessage(hwndMethodComboBox, CB_SETCURSEL, 0, 0);
 }
 LRESULT CALLBACK WndProcIntegral(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
@@ -648,52 +642,6 @@ LRESULT CALLBACK WndProcIntegral(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
     }
     return 0;
 }
-double IntegratePolynomial(double* polynom, int degree, double minX, double maxX, int selectedMethod) {
-    double sum = 0.0;
-    int n = 1000;
-    double h = (maxX - minX) / n;
-    switch (selectedMethod) {
-    case 1: // Метод прямоугольников
-        for (int i = 0; i < n; i++) {
-            double x = minX + i * h;
-            double y = 0.0;
-            for (int j = degree; j >= 0; j--) { // Обратный порядок коэффициентов
-                y += polynom[j] * pow(x, j);
-            }
-            sum += y * h;
-        }
-        break;
-    case 2: // Метод трапеций
-        for (int i = 0; i < n; i++) {
-            double x1 = minX + i * h;
-            double x2 = minX + (i + 1) * h;
-            double y1 = 0.0, y2 = 0.0;
-            for (int j = 0; j <= degree; j++) {
-                y1 += polynom[j] * pow(x1, degree - j);
-                y2 += polynom[j] * pow(x2, degree - j);
-            }
-            sum += (y1 + y2) * h / 2;
-        }
-        break;
-    case 3: // Метод Симпсона
-        for (int i = 0; i < n; i++) {
-            double x1 = minX + i * h;
-            double x2 = minX + (i + 1) * h;
-            double y1 = 0.0, y2 = 0.0, ym = 0.0;
-            for (int j = 0; j <= degree; j++) {
-                y1 += polynom[j] * pow(x1, degree - j);
-                y2 += polynom[j] * pow(x2, degree - j);
-                ym += polynom[j] * pow((x1 + x2) / 2, degree - j);
-            }
-            sum += (y1 + 4 * ym + y2) * h / 6;
-        }
-        break;
-    default:
-        sum = 0.0;
-        break;
-    }
-    return sum;
-}
 LRESULT CALLBACK WndProcPolynom(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
     case WM_DESTROY: {
@@ -704,6 +652,7 @@ LRESULT CALLBACK WndProcPolynom(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     }
     case WM_COMMAND: {
         if (lParam == (LPARAM)hwndAddPoint && HIWORD(wParam) == BN_CLICKED) {
+            // Получаем значения x и y из полей ввода
             wchar_t bufferX[100], bufferY[100];
             GetWindowText(hwndx1, bufferX, 100);
             GetWindowText(hwndy1, bufferY, 100);
@@ -717,30 +666,20 @@ LRESULT CALLBACK WndProcPolynom(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             SetWindowText(hwndy1, L"");
         }
         if (lParam == (LPARAM)hwndPolynomButton && HIWORD(wParam) == BN_CLICKED) {
-            double aX = 100, bX = 0;
+            double aX = 0,bX = 1000;
             polynom = Result(a, b, numPoints);
-
             for (int i = 0; i < numPoints; i++) {
-                if (a[i] > bX)
-                    bX = a[i];
-                if (a[i] < aX)
-                    aX = a[i];
+                if (polynom[i] > bX)
+                    aX = polynom[i];
+                if (polynom[i] < aX)
+                    bX = polynom[i];
             }
-            polynomData.degree = numPoints;
-            polynomData.maxX = bX;
-            polynomData.minX = aX;
-            int k = sizeof(polynom) / sizeof(polynom[0]);
-            polynomData.polynom = polynom;
-            numPoints = 0;
-            int selectedMethod = (int)SendMessage(hwndMethodComboBox, CB_GETCURSEL, 0, 0);
-           // double result = IntegratePolynomial(polynom, numPoints, aX, bX, selectedMethod+1);
-            double result = 0;
             wchar_t buffer[1000];
-            wchar_t buff[1000];
-            swprintf_s(buff, L"%d %d %d", polynomData.polynom[0], polynomData.polynom[1], polynomData.polynom[2]);
-            swprintf_s(buffer, L"рез: %f", result);
-            MessageBox(hwndPolynom, buff, L"sad", MB_OK);
+            swprintf_s(buffer, L"%f %f %f", polynom[0], polynom[1], polynom[2]);
             MessageBox(hwndPolynom, buffer, L"sad", MB_OK);
+
+           /// MessageBox(hwndPolynom, buffer, L"Результат", MB_OK);
+            //ChoosePolynomIntegrationMethod();
             numPoints = 0;
         }
         break;
