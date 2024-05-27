@@ -1,0 +1,360 @@
+#include <stdio.h>
+#include <fstream>
+#include <string.h>
+#include <Windows.h>
+#include <vector>
+using namespace std;
+FILE* library;
+struct Library {
+	char code[255], surname[255], initials[255], title[255], publish[255];
+	int year,count;
+}lib;
+int substrings(char* str1, char* str2) {
+	if (strstr(str1, str2) != NULL) {
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+void toLowerCase(char* str)
+{
+	int i = 0;
+	for (int i = 0; i < strlen(str); i++) {
+		str[i] = tolower(str[i]);
+	}
+}
+void merge(Library* arr, int l, int m, int r) {
+	int n1 = m - l + 1;
+	int n2 = r - m;
+
+	vector<Library> L(n1), R(n2);
+
+	for (int i = 0; i < n1; i++)
+		L[i] = arr[l + i];
+	for (int j = 0; j < n2; j++)
+		R[j] = arr[m + 1 + j];
+
+	int i = 0, j = 0, k = l;
+
+	while (i < n1 && j < n2) {
+		// Сравниваем initials
+		if (strcmp(L[i].initials, R[j].initials) < 0) {
+			arr[k] = L[i];
+			i++;
+		}
+		else if (strcmp(L[i].initials, R[j].initials) == 0) {
+			// Если initials совпадают, сравниваем title
+			if (strcmp(L[i].title, R[j].title) <= 0) {
+				arr[k] = L[i];
+				i++;
+			}
+			else {
+				arr[k] = R[j];
+				j++;
+			}
+		}
+		else {
+			arr[k] = R[j];
+			j++;
+		}
+		k++;
+	}
+
+	while (i < n1) {
+		arr[k] = L[i];
+		i++;
+		k++;
+	}
+
+	while (j < n2) {
+		arr[k] = R[j];
+		j++;
+		k++;
+	}
+}
+void mergeSort(Library* arr, int l, int r) {
+	if (l >= r) {
+		return;
+	}
+	int m = l + (r - l) / 2;
+	mergeSort(arr, l, m);
+	mergeSort(arr, m + 1, r);
+	merge(arr, l, m, r);
+}
+void mergeSortFile(const char* filename) {//берем из файла данные кидаем в массивчик; сортируем его и закидываем обратно в файл
+	ifstream file(filename, ios::binary | ios::ate);
+	if (!file.is_open()) {
+		printf("Не удалось открыть файл!\n");
+		return;
+	}
+
+	int size = file.tellg() / sizeof(Library);
+	file.seekg(0);
+
+	Library* arr = new Library[size];
+	file.read(reinterpret_cast<char*>(arr), size * sizeof(Library));
+	file.close();
+
+	mergeSort(arr, 0, size - 1);
+
+	ofstream outFile(filename, ios::binary);
+	outFile.write(reinterpret_cast<char*>(arr), size * sizeof(Library));
+	outFile.close();
+
+	delete[] arr;
+}
+void FindInfoBook() {
+	fopen_s(&library, "library.dat", "rb");
+	printf("Введите фамилию автора: \n");
+	char fam[255];
+	scanf_s("%s", fam, sizeof(fam));
+	printf("Введите количество лет, за которые была издана книга: \n");
+	int n;
+	int count = 0;
+	scanf_s("%d", &n);
+	struct Library lib;
+	while (fread(&lib, sizeof(lib), 1, library)) {
+		if (!(strcmp(lib.surname, fam)) && lib.year >= (2024 - n)) {
+			printf("%s\n", lib.title);
+			count++;
+		}
+	}
+	if (!(count)) {
+		printf("Не найдено книги!\n");
+	}
+	fclose(library);
+}
+void CheckInfoBook() {
+	fopen_s(&library, "library.dat", "ab+");
+	int count = 1;
+	if (library == NULL)
+		printf("Файл не найден!\n");
+	else {
+		printf("  Шифр         Фамилия       Инициалы      Название           Издательство          Год выпуска     Кол-во экземпляров\n\n");
+		fclose(library);
+		mergeSortFile("library.dat");
+		fopen_s(&library, "library.dat", "rb");
+		//rewind(library);
+		while (fread(&lib, sizeof(lib), 1, library)) {
+			printf("%d) %-12s%-15s%-12s%-20s%-15s%15d%15d\n", count, lib.code, lib.surname, lib.initials, lib.title, lib.publish, lib.year,lib.count);
+			count++;
+		}
+		printf("\n\n");
+		fclose(library);
+	}
+}
+void AddInfoBook() {
+	fopen_s(&library, "library.dat", "ab");
+	if (library == NULL) {
+		printf("Файл не найден!\n");
+	}
+	else {
+		printf("Файл найден! Выберите, что нужно сделать: \n");
+		printf("1 - Очистить содержимое и добавить информацию о книги(книгах)\n");
+		printf("2 - Добавить информацию о книгах без удаления старой информации\n");
+		printf("3 - Удалить информацию о какой-либо книге\n");
+		printf("4 - Выйти\n");
+		int punkt;
+		scanf_s("%d", &punkt);
+		if (punkt == 1) {
+			fclose(library);
+			fopen_s(&library, "library.dat", "wb");
+			int n;
+			printf("Введите количество книг, информацию о которых хотите ввести: \n");
+			scanf_s("%d", &n);
+			struct Library lib;
+			fflush(stdin);
+			for (int i = 0; i < n; i++) {
+				rewind(stdin);
+				system("cls");
+				printf("Введите шифр книги: \n");
+				scanf_s("%[^\n]s", lib.code, sizeof(lib.code));
+				printf("Введите фамилию автора: \n");
+				rewind(stdin);
+				scanf_s("%[^\n]s", lib.surname, sizeof(lib.surname));
+				printf("Введите инициалы автора: \n");
+				rewind(stdin);
+				scanf_s("%[^\n]s", lib.initials, sizeof(lib.initials));
+				printf("Введите название книги:\n");
+				rewind(stdin);
+				scanf_s("%[^\n]s", lib.title, sizeof(lib.title));
+				printf("Введите издательство: \n");
+				rewind(stdin);
+				scanf_s("%[^\n]s", lib.publish, sizeof(lib.publish));
+				printf("Введите год выпуска: \n");
+				scanf_s("%d", &lib.year);
+				printf("Введите кол-во экземпляров: \n");
+				scanf_s("%d", &lib.count);
+				fwrite(&lib, sizeof(lib), 1, library);
+			}
+			printf("\nДанные успешно добавлены в базу данных!\n");
+			fclose(library);
+		}
+		if (punkt == 2) {
+			int n;
+			printf("Введите количество книг, информацию о которых хотите ввести: \n");
+			scanf_s("%d", &n);
+			struct Library lib;
+			fflush(stdin);
+			for (int i = 0; i < n; i++) {
+				rewind(stdin);
+				system("cls");
+				printf("Введите шифр книги: \n");
+				scanf_s("%[^\n]s", lib.code, sizeof(lib.code));
+				printf("Введите фамилию автора: \n");
+				rewind(stdin);
+				scanf_s("%[^\n]s", lib.surname, sizeof(lib.surname));
+				printf("Введите инициалы автора: \n");
+				rewind(stdin);
+				scanf_s("%[^\n]s", lib.initials, sizeof(lib.initials));
+				printf("Введите название книги:\n");
+				rewind(stdin);
+				scanf_s("%[^\n]s", lib.title, sizeof(lib.title));
+				printf("Введите издательство: \n");
+				rewind(stdin);
+				scanf_s("%[^\n]s", lib.publish, sizeof(lib.publish));
+				printf("Введите год выпуска: \n");
+				scanf_s("%d", &lib.year);
+				printf("Введите кол-во экземпляров: \n");
+				scanf_s("%d", &lib.count);
+				fwrite(&lib, sizeof(lib), 1, library);
+			}
+			printf("\nДанные успешно добавлены в базу данных!\n");
+			fclose(library);
+		}
+		if (punkt == 3) {
+			FILE* tempfile;
+			fclose(library);
+			fopen_s(&library, "library.dat", "rb");
+			char delcode[255];
+			printf("Введите шифр книги, которую надо удалить из базы данных\n");
+			scanf_s("%s", delcode, sizeof(delcode));
+			fopen_s(&tempfile, "tempfile.dat", "wb");
+			rewind(library);
+			struct Library lib;
+			while (fread(&lib, sizeof(Library), 1, library)) {
+				if (strcmp(lib.code, delcode) == 0) {
+					continue;
+				}
+				fwrite(&lib, sizeof(Library), 1, tempfile);
+			}
+			fclose(library);
+			fclose(tempfile);
+			fopen_s(&tempfile, "tempfile.dat", "rb");
+			fopen_s(&library, "library.dat", "wb");
+			rewind(tempfile);
+			while (fread(&lib, sizeof(Library), 1, tempfile)) {
+				fwrite(&lib, sizeof(Library), 1, library);
+			}
+			printf("Книга успешно удалена из базы данных!\n");
+			fclose(library);
+			remove("tempfile.dat");
+		}
+	}
+}
+void IsBookExist() {
+	fopen_s(&library, "library.dat", "rb");
+	printf("Введите название книги, которую вы ищете: \n");
+	char name[255];
+	bool flag = false;
+	rewind(stdin);
+	scanf_s("%[^\n]s", name, sizeof(name));
+	struct Library lib;
+	int count = 0;
+	while (fread(&lib, sizeof(lib), 1, library)) {
+		count++;
+	}
+	rewind(library);
+	Library* lib_records = new Library[count];
+	fread(lib_records, sizeof(Library), count, library);
+	int left = 0, right = count - 1;
+	bool found = false;
+	while (left <= right) {
+		int mid = left + (right - left) / 2;
+		int cmp = strcmp(name, lib_records[mid].title);
+		if (cmp == 0) {
+			found = true;
+			break;
+		}
+		else if (cmp < 0) {
+			right = mid - 1;
+		}
+		else {
+			left = mid + 1;
+		}
+	}
+
+	if (found) {
+		printf("Данная книга есть в библиотеке\n");
+	}
+	else {
+		printf("Данной книги нет в библиотеке\n");
+	}
+
+	free(lib_records);
+	fclose(library);
+}
+void FindAllBooks() {
+	fopen_s(&library, "library.dat", "rb");
+	printf("Введите ключ: \n");
+	char key[255];
+	scanf_s("%s", key, sizeof(key));
+	toLowerCase(key);
+	while (fread(&lib, sizeof(lib), 1, library)) {
+		char title[255];
+		strcpy_s(title, lib.title);
+		toLowerCase(title);
+		if (substrings(title, key)) {
+			printf("%s\n", lib.title);
+		}
+	}
+	fclose(library);
+}
+int main() {
+	setlocale(LC_ALL, "rus");
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+	int choice;
+	do {
+		rewind(stdin);
+		printf("БАЗА ДАННЫХ БИБЛИОТЕКИ\n\n");
+		printf("1 - Добавить информацию о книге\n");
+		printf("2 - Просмотреть все существующие книги в библиотеке\n");
+		printf("3 - Найти книгу по фамилии автора за указанный срок\n");
+		printf("4 - Найти книгу по ключу\n");
+		printf("5 - Узнать, есть ли книга в библиотеке\n");
+		printf("0 - Выход из программы\n");
+		printf("Введите действие: \n");
+		rewind(stdin);
+		
+		scanf_s("%d", &choice);
+		switch (choice) {
+		case 1: {
+			system("cls");
+			AddInfoBook();
+			break;
+		}
+		case 2: {
+			system("cls");
+			CheckInfoBook();
+			break;
+		}
+		case 3: {
+			system("cls");
+			FindInfoBook();
+			break;
+		}
+		case 4: {
+			system("cls");
+			FindAllBooks();
+			break;
+		}
+		case 5: {
+			system("cls");
+			IsBookExist();
+			break;
+		}
+		}
+	} while (choice != 0);
+}
