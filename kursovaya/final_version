@@ -8,6 +8,7 @@
 const int IDC_BTN_INTEGRATE = 1;
 const int IDC_BTN_APPROXIMATE = 2;
 const int IDC_BTN_EXIT = 3;
+const int IDC_BTN_ABOUT = 4;
 const int nmax = 20;
 int numPoints = 0;
 int selectedIntegrationMethod = -1;
@@ -20,6 +21,7 @@ HWND hwndIntegral;
 HWND hwndPolynom;
 HWND hwndPolynomGraphics, hwndPolynomChoiceWindow, hwndPolynomChoice, hwndIntegrationMethod, hwndPolynomBtn, hwndMethodComboBox;
 HWND hwndGraphics;
+HWND hwndAbout;
 HWND hwndIntegrateButton, hwndLowerBound, hwndUpperBound, hwndPartitions, hwndFunctionList, hwndMethodList;
 HWND hwndPolynomButton, hwndx1, hwndx2, hwndx3, hwndy1, hwndy2, hwndy3, hwndAddPoint;
 LRESULT CALLBACK WndProcMain(HWND, UINT, WPARAM, LPARAM);
@@ -208,9 +210,6 @@ double integrate_polynomial_simpson(double* polynom, int degree, double a, doubl
     return integral;
 }
 double Integral_Polynom(double a, double b, int n, double* polynom, int degree, int chosen_method) {
-    wchar_t buf[1000];
-    swprintf_s(buf, L"%f %f %f", polynom[0],polynom[1],polynom[2]);
-    MessageBox(hwndPolynom, buf, L"Результат", MB_OK);
     double result = 0.0;
     switch (chosen_method) {
     case 1:
@@ -262,6 +261,54 @@ double minValue(double a, double b, int choice_func) {
     }
     return minVal;
 }
+void ShowAboutWindow(HWND hwnd) {
+    WNDCLASSA wcl;
+    memset(&wcl, 0, sizeof(WNDCLASSA));
+    wcl.lpszClassName = "AboutWindow";
+    wcl.lpfnWndProc = WndProc;
+    RegisterClassA(&wcl);
+    hwndAbout = CreateWindowEx(
+        WS_EX_CLIENTEDGE,
+        L"AboutWindow",
+        L"О программе",
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT,500,500,
+        nullptr,nullptr,GetModuleHandle(nullptr),nullptr
+    );
+    HWND hwndAboutText1 = CreateWindowEx(
+        WS_EX_TRANSPARENT, L"STATIC", L"О ПРОГРАММЕ", WS_CHILD | WS_VISIBLE | SS_LEFT,
+        100, 20, 300, 20, hwndAbout, nullptr, GetModuleHandle(nullptr), nullptr);
+
+    HWND hwndAboutText2 = CreateWindowEx(
+        0, L"STATIC", L"Программный комплекс предзназначен для решения задач,\nсвязанных с интегрированием и нахождением приближенных значений\nопределенных интегралов.\n", WS_CHILD | WS_VISIBLE | SS_LEFT,
+        20, 50, 560, 60, hwndAbout, nullptr, GetModuleHandle(nullptr), nullptr);
+
+    HWND hwndAboutText3 = CreateWindowEx(
+        0, L"STATIC", L"Интегрирование: В данном разделе вычисляется значение определенного интеграла для таблично заданной функции и выводится соотвествующий график", WS_CHILD | WS_VISIBLE | SS_LEFT,
+        20, 100, 460, 60, hwndAbout, nullptr, GetModuleHandle(nullptr), nullptr);
+
+    HWND hwndAboutText4 = CreateWindowEx(
+        0, L"STATIC", L"Полиномиальная аппроксимация: Задаются точки, по которым программа аппроксимизирует многочлен и интегрирует его от минимального введенного значения X до максимальной и выводит соответсвующий график", WS_CHILD | WS_VISIBLE | SS_LEFT,
+        20, 150, 500, 60, hwndAbout, nullptr, GetModuleHandle(nullptr), nullptr);
+    HWND hwndAboutText5 = CreateWindowEx(
+        0, L"STATIC", L"Программный комплекс был разработан Хачатрян Артёмом 1-42", WS_CHILD | WS_VISIBLE | SS_LEFT,
+        20, 400, 560, 60, hwndAbout, nullptr, GetModuleHandle(nullptr), nullptr);
+    HFONT hFont = CreateFont(
+        16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+        OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+        VARIABLE_PITCH, L"Arial"
+    );
+    SendMessage(hwndAboutText1, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hwndAboutText2, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hwndAboutText3, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hwndAboutText4, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hwndAboutText5, WM_SETFONT, (WPARAM)hFont, TRUE);
+    ShowWindow(hwndAbout, SW_SHOWNORMAL);
+    MSG msg;
+    while (GetMessage(&msg, nullptr, 0, 0)) {
+        DispatchMessage(&msg);
+    }
+}
 void DrawFunctionGraph(HWND hwnd, double a, double b, int choice_func) {
     RECT rect;
     GetClientRect(hwnd, &rect);
@@ -302,13 +349,13 @@ void DrawFunctionGraph(HWND hwnd, double a, double b, int choice_func) {
     }
     wchar_t buffer[100];
     swprintf_s(buffer, L"%.2f", a);
-    TextOut(hdc, (int)(windowWidth / 2 + a * xScale-40), windowHeight / 2 - 30, buffer, wcslen(buffer));
+    TextOut(hdc, (int)(windowWidth / 2 + a * xScale - 40), windowHeight / 2 - 30, buffer, wcslen(buffer));
     swprintf_s(buffer, L"%.2f", b);
-    TextOut(hdc, (int)(windowWidth / 2 + b * xScale+20), windowHeight / 2 - 30, buffer, wcslen(buffer));
+    TextOut(hdc, (int)(windowWidth / 2 + b * xScale + 20), windowHeight / 2 - 30, buffer, wcslen(buffer));
     swprintf_s(buffer, L"%.2f", maxVal);
-    TextOut(hdc, windowWidth/2-30, (int)(windowHeight / 2 - maxVal * yScale) - 20, buffer, wcslen(buffer));
+    TextOut(hdc, windowWidth / 2 - 30, (int)(windowHeight / 2 - maxVal * yScale) - 20, buffer, wcslen(buffer));
     swprintf_s(buffer, L"%.2f", minVal);
-    TextOut(hdc, windowWidth/2-35, (int)(windowHeight / 2 - minVal * yScale) + 20, buffer, wcslen(buffer));
+    TextOut(hdc, windowWidth / 2 - 35, (int)(windowHeight / 2 - minVal * yScale) + 20, buffer, wcslen(buffer));
     SelectObject(hdc, oldPen);
     ReleaseDC(hwnd, hdc);
 }
@@ -494,12 +541,17 @@ LRESULT CALLBACK WndProcMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
             5, 35, 300, 30, hWnd, reinterpret_cast<HMENU>(IDC_BTN_APPROXIMATE), nullptr, nullptr
         );
-
+        CreateWindow(
+            L"BUTTON",
+            L"Справка",
+            WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+            5, 70, 300, 30, hWnd, reinterpret_cast<HMENU>(IDC_BTN_ABOUT), nullptr, nullptr
+        );
         CreateWindow(
             L"BUTTON",
             L"Выход",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            5, 70, 300, 30, hWnd, reinterpret_cast<HMENU>(IDC_BTN_EXIT), nullptr, nullptr
+            5, 105, 300, 30, hWnd, reinterpret_cast<HMENU>(IDC_BTN_EXIT), nullptr, nullptr
         );
         break;
     }
@@ -510,6 +562,9 @@ LRESULT CALLBACK WndProcMain(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             break;
         case IDC_BTN_APPROXIMATE:
             ShowPolynomialWindow(hWnd);
+            break;
+        case IDC_BTN_ABOUT:
+            ShowAboutWindow(hWnd);
             break;
         case IDC_BTN_EXIT:
             PostQuitMessage(0);
@@ -608,6 +663,8 @@ void ShowIntegrationWindow(HWND hWndParent) {
         0, L"BUTTON", L"Интегрировать", WS_CHILD | WS_VISIBLE,
         140, 220, 150, 30, hwndIntegral, nullptr, wcIntegral.hInstance, nullptr
     );
+    HDC dcdc = GetDC(hwndIntegral);
+    SetBkColor(dcdc, RGB(255, 0, 0));
 }
 void ShowPolynomialWindow(HWND hWndParent) {
     if (hwndPolynom) {
@@ -678,7 +735,7 @@ LRESULT CALLBACK WndProcIntegral(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
         DestroyWindow(hWnd);
         hwndIntegral = nullptr;
         UnregisterClass(L"IntegralWindowClass", GetModuleHandle(nullptr));
-        ///PostQuitMessage(0);
+        
         break;
     case WM_COMMAND: {
         if (LOWORD(wParam) == BN_CLICKED && HWND(lParam) == hwndIntegrateButton) {
@@ -724,7 +781,7 @@ double integrate_polynomial(double* polynom, int degree, double aX, double bX, i
 
     return integral;
 }
-void PolynomGraphics(double a,double b,double* polynom,int degree,int chosen_method,double integral) {
+void PolynomGraphics(double a, double b, double* polynom, int degree, int chosen_method, double integral) {
     WNDCLASSA wca;
     memset(&wca, 0, sizeof(WNDCLASSA));
     wca.lpszClassName = "PolynomGraphics";
@@ -735,8 +792,8 @@ void PolynomGraphics(double a,double b,double* polynom,int degree,int chosen_met
         L"PolynomGraphics",
         L"График полученного полинома",
         WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,CW_USEDEFAULT,1920,1200,
-        nullptr,nullptr,GetModuleHandle(nullptr),nullptr
+        CW_USEDEFAULT, CW_USEDEFAULT, 1920, 1200,
+        nullptr, nullptr, GetModuleHandle(nullptr), nullptr
     );
     ShowWindow(hwndPolynomGraphics, SW_SHOWNORMAL);
     HDC hdc = GetDC(hwndPolynomGraphics);
@@ -748,15 +805,14 @@ void PolynomGraphics(double a,double b,double* polynom,int degree,int chosen_met
     int windowHeight = rect.bottom - rect.top;
     double maxVal = pol(b, polynom, degree);
     double minVal = pol(a, polynom, degree);
-    // Вычисляем масштабы по осям X и Y
-    double xScale = (double)(windowWidth * 0.1) / (b - a);
-    double yScale = (double)(windowHeight * 0.1) / (maxVal - minVal);
+    
+    double xScale = (double)(windowWidth * 0.2) / (b - a);
+    double yScale = (double)(windowHeight * 0.2) / (maxVal - minVal);
 
-    // Вычисляем смещение, чтобы центр отображается в (0, 0)
+
     int centerX = windowWidth / 2;
     int centerY = windowHeight / 2;
 
-    // Рисуем оси
     MoveToEx(hdc, 0, centerY, NULL);
     LineTo(hdc, windowWidth, centerY);
     MoveToEx(hdc, centerX, 0, NULL);
@@ -768,7 +824,9 @@ void PolynomGraphics(double a,double b,double* polynom,int degree,int chosen_met
         len = wcslen(polynomText);
     }
     TextOut(hdc, 10, 10, polynomText, len);
-    // Рисуем названия осей
+    wchar_t integr[255];
+    swprintf_s(integr, L"Результат интегрирования: %f", integral);
+    TextOut(hdc, 10, 40, integr, wcslen(integr));
     TextOut(hdc, windowWidth - 50, centerY - 10, L"X", 1);
     TextOut(hdc, centerX - 10, 20, L"Y", 1);
     MoveToEx(hdc, (int)(windowWidth / 2), (int)(windowHeight / 2), NULL);
@@ -778,13 +836,12 @@ void PolynomGraphics(double a,double b,double* polynom,int degree,int chosen_met
         int yPos = (int)(windowHeight / 2 - funcVal * yScale);
         SetPixel(hdc, xPos, yPos, RGB(0, 0, 255));
     }
-    // Визуализация интегрирования в зависимости от выбранного метода
     HPEN pen1;
     double integrationSum = 0.0;
-    double h = (b - a) / 10.0;
+    double h = (b - a) / 50.0;
     double prevHeight = pol(a, polynom, degree);
     switch (chosen_method) {
-    case 1: // Прямоугольники
+    case 1: 
         pen1 = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
         SelectObject(hdc, pen);
         for (double x = a; x <= b; x += h) {
@@ -802,7 +859,7 @@ void PolynomGraphics(double a,double b,double* polynom,int degree,int chosen_met
         }
         DeleteObject(pen);
         break;
-    case 2: // Трапеции
+    case 2: 
         pen1 = CreatePen(PS_SOLID, 2, RGB(0, 255, 0));
         SelectObject(hdc, pen);
         for (double x = a + h; x <= b; x += h) {
@@ -821,7 +878,7 @@ void PolynomGraphics(double a,double b,double* polynom,int degree,int chosen_met
         }
         DeleteObject(pen);
         break;
-    case 3: // Симпсон
+    case 3: 
         pen1 = CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
         SelectObject(hdc, pen);
 
@@ -856,13 +913,13 @@ void PolynomGraphics(double a,double b,double* polynom,int degree,int chosen_met
     }
     wchar_t buffer[100];
     swprintf_s(buffer, L"%.2f", a);
-    TextOut(hdc, (int)(windowWidth / 2 + a * xScale - 40), windowHeight / 2 , buffer, wcslen(buffer));
+    TextOut(hdc, (int)(windowWidth / 2 + a * xScale - 40), windowHeight / 2, buffer, wcslen(buffer));
     swprintf_s(buffer, L"%.2f", b);
-    TextOut(hdc, (int)(windowWidth / 2 + b * xScale + 20), windowHeight / 2 , buffer, wcslen(buffer));
-    swprintf_s(buffer, L"%.2f", pol(b,polynom,degree));
+    TextOut(hdc, (int)(windowWidth / 2 + b * xScale + 20), windowHeight / 2, buffer, wcslen(buffer));
+    swprintf_s(buffer, L"%.2f", pol(b, polynom, degree));
     TextOut(hdc, windowWidth / 2 - 30, (int)(windowHeight / 2 - maxVal * yScale), buffer, wcslen(buffer));
     swprintf_s(buffer, L"%.2f", pol(a, polynom, degree));
-    TextOut(hdc, windowWidth / 2 - 35, (int)(windowHeight / 2 - minVal * yScale) , buffer, wcslen(buffer));
+    TextOut(hdc, windowWidth / 2 - 35, (int)(windowHeight / 2 - minVal * yScale), buffer, wcslen(buffer));
     ReleaseDC(hwndPolynomGraphics, hdc);
 
     MSG msg;
@@ -907,7 +964,7 @@ LRESULT CALLBACK WndProcPolynom(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             wchar_t buffer[1000];
             swprintf_s(buffer, L"Результат интегрирования полученного полинома: %f", integral);
             MessageBox(hwndPolynom, buffer, L"Результат", MB_OK);
-            PolynomGraphics(aX,bX,polynom,numPoints,selectedMethod,integral);
+            PolynomGraphics(aX, bX, polynom, numPoints, selectedMethod, integral);
             numPoints = 0;
         }
         break;
